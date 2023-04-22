@@ -20,7 +20,12 @@ TEMP_DIR = Path(tempfile.gettempdir())
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("media", help="Path to media file", type=Path)
-    parser.add_argument("output", help="Path to output file", type=Path)
+    parser.add_argument(
+        "--output",
+        help="Path to output file (default: The same filename as the input media file in the same directory)",
+        type=Path,
+        default=None,
+    )
     parser.add_argument(
         "--api-key",
         help="OpenAI API key (default: read from OPENAI_API_KEY environment variable)",
@@ -72,6 +77,9 @@ def generate_captions(
     language: str = "en",
     translate: bool = False,
 ):
+    if not output:
+        output = media.parent / f"{media.stem}.{format}"
+
     if not media.is_file():
         print(f"Media file {media} does not exist")
         return 1
