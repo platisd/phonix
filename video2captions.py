@@ -28,7 +28,8 @@ def main():
     )
     parser.add_argument(
         "--prompt",
-        help="Prompt to use as a context to the model (e.g. The media's summary or script). Can be a file path or a string.",
+        help="Prompt to use as a context to the model "
+        + "(e.g. The media's summary or script). Can be a file path or a string.",
         default="",
     )
     parser.add_argument(
@@ -38,7 +39,16 @@ def main():
     )
     parser.add_argument(
         "--language",
-        help="Language of the media (default: en, must be in ISO 639-1 format and supported by OpenAI's Whisper API)",
+        help="Language of the input media for transcribing"
+        + " (default: en, must be in ISO 639-1 format and supported by OpenAI's Whisper API)."
+        + " For translating, the language is automatically detected"
+        + " and the output language is always English.",
+    )
+    parser.add_argument(
+        "--translate-to-english",
+        help="Translate the input media to English before generating captions",
+        action="store_true",
+        default=False,
     )
     args = parser.parse_args()
 
@@ -49,6 +59,7 @@ def main():
         args.prompt,
         args.output_format,
         args.language,
+        args.translate_to_english,
     )
 
 
@@ -59,6 +70,7 @@ def generate_captions(
     prompt: str = "",
     format: str = "srt",
     language: str = "en",
+    translate: bool = False,
 ):
     if not media.is_file():
         print(f"Media file {media} does not exist")
@@ -74,24 +86,34 @@ def generate_captions(
             f"Output format {format} is not supported. Must be one of: {supported_formats}"
         )
         return 1
-    
-    if (Path(prompt).is_file()):
-        with open(prompt, "r") as f:
-            prompt = f.read()
+
+    transcribe = openai.Audio.translate if translate else openai.Audio.transcribe
+    transcribe_or_translate = "Translating" if translate else "Transcribing"
+    language = "en" if translate else language
+
+    try:
+        if Path(prompt).is_file():
+            with open(prompt, "r") as f:
+                prompt = f.read()
+    except Exception:
+        # Let's suppress any errors here (e.g. due to large filename size)
+        # and just use the prompt as a string
+        pass
 
     audio = get_audio(media)
     audio_size = audio.stat().st_size
     if audio_size > TWENTYFIVE_MB:
         print(
-            "Audio file is too large, must be less than 25MB, attempting to downsample"
+            f"Audio file is too large {audio_size / 1000000}MB, must be less than 25MB, attempting to downsample"
         )
         audio = downsample_audio(audio, TWENTYFIVE_MB)
+        audio_size = audio.stat().st_size
     print(f"Audio file size in MB: {audio_size / 1000000}")
 
     openai.api_key = api_key
-    print("Transcribing audio file using OpenAI's Whisper API")
+    print(f"{transcribe_or_translate} using OpenAI's Whisper AI to {format} format")
     with open(audio, "rb") as f:
-        transcript = openai.Audio.transcribe(
+        transcript = transcribe(
             "whisper-1", f, response_format=format, language=language, prompt=prompt
         )
     print(f"Transcription complete, saving to {output}")
