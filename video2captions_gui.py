@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 def main():
-    sg.theme("DarkAmber")
+    sg.theme("DarkBlack")
 
     top_row = [
         sg.Text("Video2Captions", font=("Helvetica", 25), justification="center")
@@ -51,7 +51,7 @@ def main():
     # API key
     select_api_key = [
         sg.Text(
-            "Select API key",
+            "Select OpenAI API key",
             font=("Helvetica", 20),
             justification="left",
             key="api_key_title",
@@ -78,18 +78,20 @@ def main():
     ]
     prompt_type = [
         sg.Radio(
-            "File", "prompt_type", key="prompt_file", default=True, enable_events=True
+            "String",
+            "prompt_type",
+            key="prompt_string",
+            default=True,
+            enable_events=True,
         ),
-        sg.Radio("String", "prompt_type", key="prompt_string", enable_events=True),
+        sg.Radio("File", "prompt_type", key="prompt_file", enable_events=True),
     ]
     prompt_file_input = [
-        sg.InputText(key="prompt_file_input", size=(50, 1)),
-        sg.FileBrowse(),
+        sg.InputText(key="prompt_file_input", size=(50, 1), disabled=True),
+        sg.FileBrowse(disabled=True, key="prompt_file_input_browse"),
     ]
-    prompt_string_input = [
-        sg.Multiline(key="prompt_string_input", size=(50, 5), disabled=True)
-    ]
-    prompt = [select_prompt, prompt_type, prompt_file_input, prompt_string_input]
+    prompt_string_input = [sg.Multiline(key="prompt_string_input", size=(50, 5))]
+    prompt = [select_prompt, prompt_type, prompt_string_input, prompt_file_input]
 
     # Captions format
     select_captions_format = [
@@ -230,48 +232,42 @@ def main():
         sg.Button("Transcribe", key="run", disabled=True),
     ]
 
+    # TODO: Turn this into a list and skip the next and previous fields?
     transitions = {
         "media_file": {
             "current": "media_file",
             "next": "api_key",
             "previous": None,
-            "layout": media_file,
         },
         "api_key": {
             "current": "api_key",
             "next": "prompt",
             "previous": "media_file",
-            "layout": api_key,
         },
         "prompt": {
             "current": "prompt",
             "next": "captions_format",
             "previous": "api_key",
-            "layout": prompt,
         },
         "captions_format": {
             "current": "captions_format",
             "next": "output_file",
             "previous": "prompt",
-            "layout": captions_format,
         },
         "output_file": {
             "current": "output_file",
             "next": "transcribe_or_translate",
             "previous": "captions_format",
-            "layout": output_file,
         },
         "transcribe_or_translate": {
             "current": "transcribe_or_translate",
             "next": "language",
             "previous": "output_file",
-            "layout": transcribe_or_translate,
         },
         "language": {
             "current": "language",
             "next": None,
             "previous": "transcribe_or_translate",
-            "layout": language,
         },
     }
 
@@ -403,9 +399,11 @@ def main():
         elif event == "prompt_string":
             window["prompt_string_input"].update(disabled=False)
             window["prompt_file_input"].update(disabled=True, value="")
+            window["prompt_file_input_browse"].update(disabled=True)
         elif event == "prompt_file":
             window["prompt_string_input"].update(disabled=True, value="")
             window["prompt_file_input"].update(disabled=False)
+            window["prompt_file_input_browse"].update(disabled=False)
         elif event == "translate":
             window["run"].update(text="Translate")
             # Input language is automatically detected, only translation to English is supported
