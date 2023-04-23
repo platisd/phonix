@@ -57,7 +57,7 @@ def main():
     )
     args = parser.parse_args()
 
-    return generate_captions(
+    exit_code, exit_message = generate_captions(
         args.media,
         args.output,
         args.api_key,
@@ -66,6 +66,8 @@ def main():
         args.language,
         args.translate_to_english,
     )
+    print(exit_message)
+    return exit_code
 
 
 def generate_captions(
@@ -78,22 +80,22 @@ def generate_captions(
     translate: bool = False,
 ):
     if not output:
-        output = media.parent / f"{media.stem}.{format}"
+        output = media.with_suffix(f".{format}")
 
     if not media.is_file():
-        print(f"Media file {media} does not exist")
-        return 1
+        exit_message = f"Media file {media} does not exist"
+        return (1, exit_message)
 
     if not api_key:
-        print("OpenAI API key is required, none provided or found in environment")
-        return 1
+        exit_message = (
+            "OpenAI API key is required, none provided or found in environment"
+        )
+        return (1, exit_message)
 
     supported_formats = ["srt", "vtt"]
     if format not in supported_formats:
-        print(
-            f"Output format {format} is not supported. Must be one of: {supported_formats}"
-        )
-        return 1
+        exit_message = f"Output format {format} is not supported. Must be one of: {supported_formats}"
+        return (1, exit_message)
 
     transcribe = openai.Audio.translate if translate else openai.Audio.transcribe
     transcribe_or_translate = "Translating" if translate else "Transcribing"
@@ -124,11 +126,11 @@ def generate_captions(
         transcript = transcribe(
             "whisper-1", f, response_format=format, language=language, prompt=prompt
         )
-    print(f"Transcription complete, saving to {output}")
     with open(output, "w") as f:
         f.write(transcript)
 
-    return 0
+    exit_message = f"Transcription complete, saved to {output}"
+    return (0, exit_message)
 
 
 def get_audio(media: Path):
