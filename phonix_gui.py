@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-The GUI for video2captions.py
+The GUI for phonix.py
 """
 
-import video2captions
+import phonix
 import sys
 import PySimpleGUI as sg
 import os.path
@@ -14,9 +14,7 @@ from pathlib import Path
 def main():
     sg.theme("DarkBlack")
 
-    top_row = [
-        sg.Text("Video2Captions", font=("Helvetica", 25), justification="center")
-    ]
+    top_row = [sg.Text("Phonix", font=("Helvetica", 25), justification="center")]
 
     # Media file
     select_media_file = [
@@ -322,7 +320,7 @@ def main():
         bottom_navigation,
     ]
 
-    window = sg.Window("Video2Captions", layout)
+    window = sg.Window("Phonix", layout)
     while True:
         event, values = window.read()
 
@@ -426,7 +424,7 @@ def main():
             )
             translate_value = values["translate"]
 
-            exit_code, exit_message = video2captions.generate_captions(
+            exit_code, exit_message = phonix.generate_captions(
                 media=media_path,
                 output=output_file_path,
                 api_key=api_key_value,
