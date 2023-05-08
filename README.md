@@ -48,4 +48,4 @@ It has a few options that you can see by running `python phonix.py --help`.
 ### GUI usage
 
 Assuming you have installed the dependencies, you can run the GUI with `python phonix_gui.py`.
-A demo of the tool can be found in this [video](https://www.youtube.com/@platisd).
+A demo of the tool can be found in this [video](https://youtu.be/kkJzt00qafo).
