@@ -11,6 +11,14 @@ Compared to other solutions, it has the advantage that its transcription can be 
 by the user providing prompts that indicate the "domain" of the video.
 This means you may get better results if you use technical terms, acronyms and jargon.
 
+### Captivating captions
+
+Now `phonix` supports "captivating" captions, which means that you can produce captions that highlight
+the currently spoken words in the video and choose the maximum number of words present in each caption.
+This means you will be able to produce "influencer-style" captions with few words per caption and highlighting
+the current word. 💫<br>
+This is enabled through [stable-ts](https://github.com/jianfch/stable-ts) so you will need to install it (see [below](#installation)).
+
 ## Why?
 
 Captions are not just for the hearing impaired.
@@ -39,6 +47,7 @@ GUI for it. Use whichever you feel more comfortable with.
 * Install a recent version of Python with [Tkinter](https://docs.python.org/3/library/tkinter.html#module-tkinter)
 * Install `ffmpeg` [for your platform](https://ffmpeg.org/download.html)
 * Install Python dependencies: `pip install -r requirements-basic.txt`
+  * If you want to transcribe locally without the need to pay for an OpenAI API key, then `pip install -r requirements-advanced.txt` and choose to run Whisper locally.
 
 ### Command line usage
 
