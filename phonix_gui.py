@@ -63,7 +63,18 @@ def main():
             enable_events=True,
         )
     ]
-    api_key = [select_api_key, api_key_input]
+    run_whisper_locally = [
+        sg.Checkbox(
+            "Run Whisper locally",
+            key="run_whisper_locally",
+            enable_events=True,
+            background_color="gray",
+            tooltip="Run Whisper locally instead of using the OpenAI API."
+            + "Select this if you want to highlight specific words "
+            + "or limit the number of words per caption.",
+        )
+    ]
+    api_key = [select_api_key, api_key_input, run_whisper_locally]
 
     # Prompt
     select_prompt = [
@@ -109,7 +120,61 @@ def main():
         ),
         sg.Radio(".vtt", "captions_format", key="captions_format_vtt"),
     ]
-    captions_format = [select_captions_format, captions_format_options]
+    # Captivating captions
+    captivating_captions = [
+        sg.Text(
+            "Captivating captions",
+            font=("Helvetica", 20),
+            justification="left",
+            key="captivating_captions_title",
+        )
+    ]
+    highlight_words = [
+        sg.Checkbox(
+            "Highlight words",
+            key="highlight_words",
+            background_color="gray",
+            tooltip="Highlight the spoken word",
+        )
+    ]
+
+    highlight_color = [
+        sg.Text("Highlight color:"),
+        sg.Combo(
+            [
+                None,
+                "bold",
+                "red",
+                "green",
+                "blue",
+                "yellow",
+                "magenta",
+                "cyan",
+                "white",
+            ],
+            default_value=None,
+            key="highlight_color",
+            enable_events=True,
+            readonly=True,
+        ),
+    ]
+    max_words_per_caption = [
+        sg.Text("Max words per caption:"),
+        sg.InputText(
+            key="max_words_per_caption",
+            enable_events=True,
+            size=(2, 1),
+        ),
+    ]
+
+    captions_format = [
+        select_captions_format,
+        captions_format_options,
+        captivating_captions,
+        highlight_words,
+        highlight_color,
+        max_words_per_caption,
+    ]
 
     # Transcribe or translate
     select_transcribe_or_translate = [
@@ -321,6 +386,7 @@ def main():
     ]
 
     window = sg.Window("Phonix", layout)
+    previous_max_words_per_caption = ""
     while True:
         event, values = window.read()
 
@@ -348,7 +414,7 @@ def main():
 
             # Specific logic for each transition
             if current_transition_key == "api_key":
-                if values["api_key"]:
+                if values["api_key"] or values["run_whisper_locally"]:
                     window["next"].update(disabled=False)
                 else:
                     window["next"].update(disabled=True)
@@ -394,6 +460,34 @@ def main():
                 window["next"].update(disabled=False)
             else:
                 window["next"].update(disabled=True)
+        elif event == "run_whisper_locally":
+            if values["run_whisper_locally"]:
+                window["api_key"].update(disabled=True)
+                window["next"].update(disabled=False)
+            else:
+                window["api_key"].update(disabled=False)
+                if values["api_key"]:
+                    window["next"].update(disabled=False)
+                else:
+                    window["next"].update(disabled=True)
+        elif event == "max_words_per_caption":
+            # Only allow numbers and values between up to 20
+            max_words_value = values["max_words_per_caption"]
+            if max_words_value != "":
+                if (
+                    str(max_words_value).isnumeric()
+                    and int(max_words_value) > 0
+                    and int(max_words_value) <= 20
+                ):
+                    previous_max_words_per_caption = int(max_words_value)
+                else:
+                    window["max_words_per_caption"].update(
+                        value=previous_max_words_per_caption
+                    )
+            else:
+                previous_max_words_per_caption = values["max_words_per_caption"]
+        elif event == "highlight_color":
+            window["highlight_words"].update(value=values["highlight_color"] != None)
         elif event == "prompt_string":
             window["prompt_string_input"].update(disabled=False)
             window["prompt_file_input"].update(disabled=True, value="")
@@ -423,6 +517,17 @@ def main():
                 values["language"].split(" ")[-1].replace("(", "").replace(")", "")
             )
             translate_value = values["translate"]
+            run_whisper_locally_value = values["run_whisper_locally"]
+            max_words_per_caption_value = (
+                int(values["max_words_per_caption"])
+                if str(values["max_words_per_caption"]).isnumeric()
+                else None
+            )
+            local_whisper_options = {
+                "highlight_words": values["highlight_words"],
+                "highlight_color": values["highlight_color"],
+                "max_words_per_caption": max_words_per_caption_value,
+            }
 
             exit_code, exit_message = phonix.generate_captions(
                 media=media_path,
@@ -432,6 +537,8 @@ def main():
                 format=format_value,
                 language=language_value,
                 translate=translate_value,
+                run_whisper_locally=run_whisper_locally_value,
+                local_whisper_options=local_whisper_options,
             )
             popup = sg.popup_ok if exit_code == 0 else sg.popup_error
             popup(exit_message)

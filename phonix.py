@@ -13,6 +13,8 @@ import tempfile
 from pathlib import Path
 from pydub import AudioSegment
 
+import stable_whisper
+
 TWENTYFIVE_MB = 26214400
 TEMP_DIR = Path(tempfile.gettempdir())
 
@@ -55,7 +57,38 @@ def main():
         action="store_true",
         default=False,
     )
+    parser.add_argument(
+        "--run-whisper-locally",
+        help="Use the local Whisper model instead of the OpenAI API. Does not require an API key.",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--highlight-words",
+        help="Highlight each word in the captions as they are spoken. Will run Whisper locally.",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--highlight-color",
+        choices=["bold", "red", "green", "blue", "yellow", "magenta", "cyan", "white"],
+        help="Color of the highlight. Will run Whisper locally and highlight words.",
+        default=None,
+    )
+    parser.add_argument(
+        "--max-words-per-caption",
+        help="Maximum number of words per caption, if none provided, will be automatically determined."
+        + " Will run Whisper locally.",
+        type=int,
+        default=None,
+    )
     args = parser.parse_args()
+
+    local_whisper_options = {
+        "highlight_words": args.highlight_words,
+        "highlight_color": args.highlight_color,
+        "max_words_per_caption": args.max_words_per_caption,
+    }
 
     exit_code, exit_message = generate_captions(
         args.media,
@@ -65,6 +98,8 @@ def main():
         args.output_format,
         args.language,
         args.translate_to_english,
+        args.run_whisper_locally,
+        local_whisper_options,
     )
     print(exit_message)
     return exit_code
@@ -78,6 +113,12 @@ def generate_captions(
     format: str = "srt",
     language: str = "en",
     translate: bool = False,
+    run_whisper_locally: bool = False,
+    local_whisper_options: dict = {
+        "highlight_words": None,
+        "highlight_color": None,
+        "max_words_per_caption": None,
+    },
 ):
     if not output:
         output = media.with_suffix(f".{format}")
@@ -86,7 +127,10 @@ def generate_captions(
         exit_message = f"Media file {media} does not exist"
         return (1, exit_message)
 
-    if not api_key:
+    if any(local_whisper_options.values()):
+        run_whisper_locally = True
+
+    if not api_key and not run_whisper_locally:
         exit_message = (
             "OpenAI API key is required, none provided or found in environment"
         )
@@ -120,17 +164,83 @@ def generate_captions(
         audio_size = audio.stat().st_size
     print(f"Audio file size in MB: {audio_size / 1000000}")
 
-    openai.api_key = api_key
-    print(f"{transcribe_or_translate} using OpenAI's Whisper AI to {format} format")
-    with open(audio, "rb") as f:
-        transcript = transcribe(
-            "whisper-1", f, response_format=format, language=language, prompt=prompt
-        )
-    with open(output, "w") as f:
-        f.write(transcript)
+    print(f"{transcribe_or_translate} using OpenAI's Whisper API to {format} format")
+
+    do_transcribe(
+        run_whisper_locally=run_whisper_locally,
+        audio_to_transcribe=audio,
+        caption_format=format,
+        language=language,
+        prompt=prompt,
+        output_filename=output,
+        api_key=api_key,
+        api_transcribe_fn=transcribe,
+        local_whisper_options=local_whisper_options,
+    )
 
     exit_message = f"Transcription complete, saved to {output}"
     return (0, exit_message)
+
+
+def do_transcribe(
+    run_whisper_locally: bool,
+    audio_to_transcribe: Path,
+    caption_format: str,
+    language: str,
+    prompt: str,
+    output_filename: Path,
+    api_key: str = None,
+    api_transcribe_fn=None,
+    local_whisper_options: dict = {},
+):
+    if run_whisper_locally:
+        try:
+            import stable_whisper
+        except ImportError:
+            print(
+                "Dependencies to run Whisper locally are not installed,"
+                + "please install them by running: "
+                + "pip install -r requirements-advanced.txt"
+            )
+            raise
+
+        model = stable_whisper.load_model("base")
+        result = model.transcribe(
+            str(audio_to_transcribe),
+            initial_prompt=prompt,
+        )
+
+        max_words_per_caption = local_whisper_options["max_words_per_caption"]
+        if max_words_per_caption and max_words_per_caption > 0:
+            result = result.split_by_length(max_words=max_words_per_caption)
+
+        color_tag = None
+        if local_whisper_options["highlight_color"]:
+            local_whisper_options["highlight_words"] = True
+            color = local_whisper_options["highlight_color"]
+            if color == "bold":
+                color_tag = ("<b>", "</b>")
+            else:
+                color_tag = (f'<font color="{color}">', "</font>")
+
+        result.to_srt_vtt(
+            str(output_filename),
+            word_level=local_whisper_options["highlight_words"],
+            tag=color_tag,
+            vtt=caption_format == "vtt",
+        )
+    else:
+        openai.api_key = api_key
+        with open(audio_to_transcribe, "rb") as f:
+            transcript = api_transcribe_fn(
+                "whisper-1",
+                f,
+                response_format=caption_format,
+                language=language,
+                prompt=prompt,
+            )
+        with open(output_filename, "w") as f:
+            f.write(transcript)
 
 
 def get_audio(media: Path):

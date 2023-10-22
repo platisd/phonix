@@ -38,7 +38,7 @@ GUI for it. Use whichever you feel more comfortable with.
 * Clone or download this repository
 * Install a recent version of Python with [Tkinter](https://docs.python.org/3/library/tkinter.html#module-tkinter)
 * Install `ffmpeg` [for your platform](https://ffmpeg.org/download.html)
-* Install Python dependencies: `pip install -r requirements.txt`
+* Install Python dependencies: `pip install -r requirements-basic.txt`
 
 ### Command line usage
 
