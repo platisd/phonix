@@ -42,7 +42,13 @@ def main():
     ]
     output_file_input = [
         sg.InputText(key="output_file", size=(50, 1)),
-        sg.FileSaveAs(),
+        sg.FileSaveAs(button_text="Save as"),
+        sg.Button(
+            "X",
+            key="reset_output_file",
+            tooltip="Reset output file to default",
+            enable_events=True,
+        ),
     ]
     output_file = [select_output_file, output_file_input]
 
@@ -137,7 +143,6 @@ def main():
             tooltip="Highlight the spoken word",
         )
     ]
-
     highlight_color = [
         sg.Text("Highlight color:"),
         sg.Combo(
@@ -496,6 +501,10 @@ def main():
             window["prompt_string_input"].update(disabled=True, value="")
             window["prompt_file_input"].update(disabled=False)
             window["prompt_file_input_browse"].update(disabled=False)
+        elif event == "reset_output_file":
+            input_media_file = Path(values["media_file"])
+            default_output_file = input_media_file.with_suffix(f".{format}")
+            window["output_file"].update(value=default_output_file)
         elif event == "translate":
             window["run"].update(text="Translate")
             # Input language is automatically detected, only translation to English is supported
