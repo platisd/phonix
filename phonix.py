@@ -4,7 +4,6 @@ Generate captions for a video using OpenAI's Whisper API
 """
 
 import argparse
-import openai
 import sys
 import os
 import mimetypes
@@ -13,6 +12,8 @@ import tempfile
 from pathlib import Path
 from pydub import AudioSegment
 
+import openai
+import pysrt
 import stable_whisper
 
 TWENTYFIVE_MB = 26214400
@@ -41,6 +42,7 @@ def main():
     )
     parser.add_argument(
         "--output-format",
+        choices=["srt", "vtt"],
         help="Output format (default: srt, can also be vtt)",
         default="srt",
     )
@@ -82,6 +84,18 @@ def main():
         type=int,
         default=None,
     )
+    parser.add_argument(
+        "--captions-font",
+        help="Font used for the captions. It must be installed on your system.",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--captions-font-size",
+        help="Font size (in px) used for the captions.",
+        type=int,
+        default=None,
+    )
     args = parser.parse_args()
 
     local_whisper_options = {
@@ -90,16 +104,22 @@ def main():
         "max_words_per_caption": args.max_words_per_caption,
     }
 
+    font_options = {
+        "font": args.captions_font,
+        "font_size": args.captions_font_size,
+    }
+
     exit_code, exit_message = generate_captions(
-        args.media,
-        args.output,
-        args.api_key,
-        args.prompt,
-        args.output_format,
-        args.language,
-        args.translate_to_english,
-        args.run_whisper_locally,
-        local_whisper_options,
+        media=args.media,
+        output=args.output,
+        api_key=args.api_key,
+        prompt=args.prompt,
+        format=args.output_format,
+        language=args.language,
+        translate=args.translate_to_english,
+        run_whisper_locally=args.run_whisper_locally,
+        local_whisper_options=local_whisper_options,
+        font_options=font_options,
     )
     print(exit_message)
     return exit_code
@@ -118,6 +138,10 @@ def generate_captions(
         "highlight_words": None,
         "highlight_color": None,
         "max_words_per_caption": None,
+    },
+    font_options: dict = {
+        "font": None,
+        "font_size": None,
     },
 ):
     if not output:
@@ -177,6 +201,23 @@ def generate_captions(
         api_transcribe_fn=transcribe,
         local_whisper_options=local_whisper_options,
     )
+
+    # Post-process the captions
+    if any(font_options.values()):
+        if format == "vtt":
+            print(
+                "Font options are not supported for vtt format, request this feature on GitHub"
+            )
+        else:
+            captions = pysrt.open(output)
+            for caption in captions:
+                if font_options["font"]:
+                    caption.text = (
+                        f"<font face='{font_options['font']}'>{caption.text}</font>"
+                    )
+                if font_options["font_size"]:
+                    caption.text = f"<font size='{font_options['font_size']}'>{caption.text}</font>"
+            captions.save(output)
 
     exit_message = f"Transcription complete, saved to {output}"
     return (0, exit_message)

@@ -19,6 +19,13 @@ This means you will be able to produce "influencer-style" captions with few word
 the current word. 💫<br>
 This is enabled through [stable-ts](https://github.com/jianfch/stable-ts) so you will need to install it (see [below](#installation)).
 
+Overall the following options are available when it comes to styling the captions:
+- Highlight the current word
+- Choose the maximum number of words per caption
+- Choose the caption font size
+- Choose the caption font color
+- Choose the caption font family
+
 ## Why?
 
 Captions are not just for the hearing impaired.

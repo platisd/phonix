@@ -171,6 +171,25 @@ def main():
             size=(2, 1),
         ),
     ]
+    # Font type
+    font_type = [
+        sg.Text("Font type:"),
+        sg.InputText(
+            key="font_type",
+            size=(20, 1),
+            default_text="",
+        ),
+    ]
+    # Font size
+    font_size = [
+        sg.Text("Font size:"),
+        sg.InputText(
+            key="font_size",
+            size=(3, 1),
+            default_text="",
+            enable_events=True,
+        ),
+    ]
 
     captions_format = [
         select_captions_format,
@@ -179,6 +198,8 @@ def main():
         highlight_words,
         highlight_color,
         max_words_per_caption,
+        font_type,
+        font_size,
     ]
 
     # Transcribe or translate
@@ -392,6 +413,7 @@ def main():
 
     window = sg.Window("Phonix", layout)
     previous_max_words_per_caption = ""
+    previous_font_size = ""
     while True:
         event, values = window.read()
 
@@ -491,6 +513,20 @@ def main():
                     )
             else:
                 previous_max_words_per_caption = values["max_words_per_caption"]
+        elif event == "font_size":
+            # Only allow numbers and values between up to 999
+            font_size_value = values["font_size"]
+            if font_size_value != "":
+                if (
+                    str(font_size_value).isnumeric()
+                    and int(font_size_value) > 0
+                    and int(font_size_value) <= 999
+                ):
+                    previous_font_size = int(font_size_value)
+                else:
+                    window["font_size"].update(value=previous_font_size)
+            else:
+                previous_font_size = values["font_size"]
         elif event == "highlight_color":
             window["highlight_words"].update(value=values["highlight_color"] != None)
         elif event == "prompt_string":
@@ -538,6 +574,11 @@ def main():
                 "max_words_per_caption": max_words_per_caption_value,
             }
 
+            font_options = {
+                "font": values["font_type"],
+                "font_size": int(values["font_size"]),
+            }
+
             exit_code, exit_message = phonix.generate_captions(
                 media=media_path,
                 output=output_file_path,
@@ -548,6 +589,7 @@ def main():
                 translate=translate_value,
                 run_whisper_locally=run_whisper_locally_value,
                 local_whisper_options=local_whisper_options,
+                font_options=font_options,
             )
             popup = sg.popup_ok if exit_code == 0 else sg.popup_error
             popup(exit_message)
