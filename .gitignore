@@ -131,3 +131,9 @@ dmypy.json
 # Ignore IDE folders
 .vscode/
 .idea/
+
+# Ignore media files involved with testing
+*.srt
+*.mp3
+*.mp4
+*.vtt
