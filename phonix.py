@@ -14,7 +14,6 @@ from pydub import AudioSegment
 
 import openai
 import pysrt
-import stable_whisper
 
 TWENTYFIVE_MB = 26214400
 TEMP_DIR = Path(tempfile.gettempdir())
