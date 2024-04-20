@@ -48,10 +48,10 @@ def main():
     parser.add_argument(
         "--language",
         help="Language of the input media for transcribing"
-        + " (default: en, must be in ISO 639-1 format and supported by OpenAI's Whisper API)."
+        + " Must be in ISO 639-1 format, e.g. 'en' and supported by OpenAI's Whisper API."
         + " For translating, the language is automatically detected"
         + " and the output language is always English.",
-        default="en",
+        default=None,
     )
     parser.add_argument(
         "--translate-to-english",
@@ -292,7 +292,6 @@ def do_transcribe(
         with open(audio_to_transcribe, "rb") as f:
             transcribe_args["file"] = f
             transcript = api_transcribe_fn(**transcribe_args)
-            print(transcribe_args)
         with open(output_filename, "w") as f:
             f.write(transcript)
 
