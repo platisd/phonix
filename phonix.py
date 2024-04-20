@@ -51,6 +51,7 @@ def main():
         + " (default: en, must be in ISO 639-1 format and supported by OpenAI's Whisper API)."
         + " For translating, the language is automatically detected"
         + " and the output language is always English.",
+        default="en",
     )
     parser.add_argument(
         "--translate-to-english",
