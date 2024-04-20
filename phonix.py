@@ -165,7 +165,22 @@ def generate_captions(
         exit_message = f"Output format {format} is not supported. Must be one of: {supported_formats}"
         return (1, exit_message)
 
-    transcribe = openai.Audio.translate if translate else openai.Audio.transcribe
+    if not run_whisper_locally:
+        openai_client = openai.OpenAI(api_key=api_key)
+        transcribe = (
+            openai_client.audio.translations.create
+            if translate
+            else openai_client.audio.transcriptions.create
+        )
+        transcribe_args = {
+            "model": "whisper-1",
+            "response_format": format,
+            "prompt": prompt,
+        }
+        if not translate:
+            # The translation API always translates to English and auto-detects the input language
+            # `language`` is only used for transcriptions
+            transcribe_args["language"] = language
     transcribe_or_translate = "Translating" if translate else "Transcribing"
     language = "en" if translate else language
 
@@ -199,6 +214,7 @@ def generate_captions(
         output_filename=output,
         api_key=api_key,
         api_transcribe_fn=transcribe,
+        transcribe_args=transcribe_args,
         local_whisper_options=local_whisper_options,
     )
 
@@ -232,6 +248,7 @@ def do_transcribe(
     output_filename: Path,
     api_key: str = None,
     api_transcribe_fn=None,
+    transcribe_args: dict = {},
     local_whisper_options: dict = {},
 ):
     if run_whisper_locally:
@@ -273,13 +290,9 @@ def do_transcribe(
     else:
         openai.api_key = api_key
         with open(audio_to_transcribe, "rb") as f:
-            transcript = api_transcribe_fn(
-                "whisper-1",
-                f,
-                response_format=caption_format,
-                language=language,
-                prompt=prompt,
-            )
+            transcribe_args["file"] = f
+            transcript = api_transcribe_fn(**transcribe_args)
+            print(transcribe_args)
         with open(output_filename, "w") as f:
             f.write(transcript)
 
