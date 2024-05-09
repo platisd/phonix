@@ -165,6 +165,8 @@ def generate_captions(
         exit_message = f"Output format {format} is not supported. Must be one of: {supported_formats}"
         return (1, exit_message)
 
+    transcribe = None
+    transcribe_args = None
     if not run_whisper_locally:
         openai_client = openai.OpenAI(api_key=api_key)
         transcribe = (
