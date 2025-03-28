@@ -576,7 +576,9 @@ def main():
 
             font_options = {
                 "font": values["font_type"],
-                "font_size": int(values["font_size"]),
+                "font_size": int(values["font_size"])
+                if values["font_size"].strip() 
+                else None, 
             }
 
             exit_code, exit_message = phonix.generate_captions(
