@@ -5,7 +5,7 @@ The GUI for phonix.py
 
 import phonix
 import sys
-import PySimpleGUI as sg
+import FreeSimpleGUI as sg
 import os.path
 
 from pathlib import Path
